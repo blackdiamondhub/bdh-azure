@@ -40,9 +40,15 @@ $spId = Invoke-Az ad sp list --filter "appId eq '$appId'" --query '[0].id' -o ts
 if (-not $spId) { $spId = Invoke-Az ad sp create --id $appId --query id -o tsv }
 
 $existing = @(Invoke-Az ad app federated-credential list --id $appId --query '[].name' -o tsv)
+# Newer GitHub orgs/repos issue ID-qualified subjects (owner@id/repo@id);
+# register both forms so either works.
+$ids = gh api "repos/$Repo" --jq '"\(.owner.login)@\(.owner.id)/\(.name)@\(.id)"'
+if ($LASTEXITCODE) { throw 'gh api failed' }
 $creds = @{
-    'github-main' = "repo:${Repo}:ref:refs/heads/main"
-    'github-pr'   = "repo:${Repo}:pull_request"
+    'github-main'    = "repo:${Repo}:ref:refs/heads/main"
+    'github-pr'      = "repo:${Repo}:pull_request"
+    'github-main-id' = "repo:${ids}:ref:refs/heads/main"
+    'github-pr-id'   = "repo:${ids}:pull_request"
 }
 foreach ($name in $creds.Keys) {
     if ($existing -contains $name) { continue }
