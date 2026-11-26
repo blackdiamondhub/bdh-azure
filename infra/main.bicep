@@ -98,5 +98,6 @@ resource budget 'Microsoft.Consumption/budgets@2023-11-01' = if (monthlyBudget >
 }
 
 output endpoint string = account.properties.endpoint
-output realtimeEndpoint string = 'wss://${accountName}.openai.azure.com/openai/realtime'
+// GA realtime API; append ?model=<deployment name>. The preview path is refused.
+output realtimeEndpoint string = 'wss://${accountName}.openai.azure.com/openai/v1/realtime'
 output deploymentNames array = [for d in deployments: d.name]

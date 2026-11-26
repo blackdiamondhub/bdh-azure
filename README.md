@@ -12,7 +12,7 @@ subscription:
 
 | Resource | Purpose |
 |---|---|
-| Azure AI Services account `bdh-ai-lodge` | Endpoint `https://bdh-ai-lodge.openai.azure.com/` |
+| Azure AI Services account `bdh-ai-lodge` | `https://bdh-ai-lodge.openai.azure.com/`; realtime `wss://bdh-ai-lodge.openai.azure.com/openai/v1/realtime?model=<deployment>` (GA v1 API, `api-key` header) |
 | Deployment `gpt-realtime-2.1-mini` | Default voice model (speech in/out + function calling) |
 | Deployment `gpt-realtime-2.1` | Higher-quality voice model, selectable in the voice app |
 | Deployment `gpt-4.1-mini` | Text chat and the supervisor agent |
