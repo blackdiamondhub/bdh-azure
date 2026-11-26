@@ -1,0 +1,79 @@
+name: Deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Bicep
+        run: |
+          az bicep install
+          az bicep build --file infra/main.bicep --stdout > /dev/null
+          az bicep build-params --file infra/main.bicepparam --stdout > /dev/null
+        env:
+          BUDGET_EMAILS: ${{ vars.BUDGET_EMAILS }}
+
+  what-if:
+    needs: validate
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: What-if
+        env:
+          BUDGET_EMAILS: ${{ vars.BUDGET_EMAILS }}
+        run: |
+          set -o pipefail
+          az deployment group what-if -g "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --parameters infra/main.bicepparam 2>&1 | tee whatif.txt
+          {
+            echo '### Azure what-if'
+            echo '```'
+            sed 's/\x1b\[[0-9;]*m//g' whatif.txt | head -c 60000
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: validate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy
+        env:
+          BUDGET_EMAILS: ${{ vars.BUDGET_EMAILS }}
+        run: |
+          az deployment group create -g "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            -n "bdh-ai-${{ github.run_number }}" \
+            --parameters infra/main.bicepparam \
+            --query properties.outputs -o json | tee outputs.json
+          {
+            echo '### Deployed'
+            echo '```json'
+            cat outputs.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
