@@ -16,6 +16,7 @@ subscription:
 | Deployment `gpt-realtime-2.1-mini` | Default voice model (speech in/out + function calling) |
 | Deployment `gpt-realtime-2.1` | Higher-quality voice model, selectable in the voice app |
 | Deployment `gpt-4.1-mini` | Text chat and the supervisor agent |
+| Speech account `bdh-speech-lodge` (F0, free) | Text to speech for hub announcements (Azure neural voices, e.g. `en-US-AvaNeural`). Separate account so the hub's key can only make speech |
 | Budget `bdh-ai-monthly` | $50/month; emails at 50% and 80% actual and 100% forecast |
 
 Deployment names are what hub apps put in their "model" setting. To add or
@@ -59,7 +60,14 @@ Hub apps authenticate with an account key, stored as an app secret in the hub
 az cognitiveservices account keys list -g bdh-ai-rg -n bdh-ai-lodge --query key1 -o tsv
 ```
 
-Paste it into the app's secret setting (for example, the Voice app's
+For spoken announcements, use the Speech account's key and region (`westus3`)
+in the hub's Settings -> Speech:
+
+```powershell
+az cognitiveservices account keys list -g bdh-ai-rg -n bdh-speech-lodge --query key1 -o tsv
+```
+
+Paste the AI Services key into the app's secret setting (for example, the Voice app's
 "Azure OpenAI key") in the hub's admin Settings. Rotate with
 `az cognitiveservices account keys regenerate --key-name key1` (switch the app
 to `key2` first to avoid downtime).

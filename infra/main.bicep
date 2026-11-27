@@ -11,6 +11,12 @@ param accountName string
 @description('Model deployments. The deployment name is what apps select in their settings.')
 param deployments array
 
+@description('Speech account for the hub\'s spoken announcements (text to speech). Empty skips it.')
+param speechAccountName string = ''
+
+@description('Speech pricing tier. F0 is free (0.5M neural characters a month, one F0 per subscription).')
+param speechSku string = 'F0'
+
 @description('Monthly cost budget for this resource group (USD). 0 disables it.')
 param monthlyBudget int = 0
 
@@ -37,6 +43,23 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
     customSubDomainName: accountName
     publicNetworkAccess: 'Enabled'
     // Hub apps authenticate with an account key stored as an app secret.
+    disableLocalAuth: false
+  }
+}
+
+// Separate from the AI Services account so the hub's key can only make speech.
+resource speech 'Microsoft.CognitiveServices/accounts@2025-06-01' = if (!empty(speechAccountName)) {
+  name: speechAccountName
+  location: location
+  kind: 'SpeechServices'
+  sku: {
+    name: speechSku
+  }
+  tags: tags
+  properties: {
+    customSubDomainName: speechAccountName
+    publicNetworkAccess: 'Enabled'
+    // The hub authenticates with the account key, stored in hub settings.
     disableLocalAuth: false
   }
 }
@@ -101,3 +124,5 @@ output endpoint string = account.properties.endpoint
 // GA realtime API; append ?model=<deployment name>. The preview path is refused.
 output realtimeEndpoint string = 'wss://${accountName}.openai.azure.com/openai/v1/realtime'
 output deploymentNames array = [for d in deployments: d.name]
+// Hub settings -> Speech takes this region plus the account key.
+output speechRegion string = empty(speechAccountName) ? '' : location
