@@ -28,6 +28,10 @@ param deployments = [
   }
 ]
 
+// Text to speech for announcements (Azure neural voices, e.g. AvaNeural). Free tier.
+param speechAccountName = 'bdh-speech-lodge'
+param speechSku = 'F0'
+
 param monthlyBudget = 50
 param budgetStartDate = '2026-11-01'
 // Set from the BUDGET_EMAILS repository variable (comma separated) so no
